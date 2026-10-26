@@ -1,0 +1,84 @@
+rules_version = '2';
+
+// Travel Hub security rules.
+// Publish: Firebase console -> Firestore Database -> Rules -> paste -> Publish
+//   (or: firebase deploy --only firestore:rules)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function tripPath(tripId) {
+      return /databases/$(database)/documents/trips/$(tripId);
+    }
+
+    function isMember(tripId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/trips/$(tripId)/members/$(request.auth.uid));
+    }
+
+    // -- Trips --
+    match /trips/{tripId} {
+      allow create: if signedIn() && request.resource.data.created_by == request.auth.uid;
+      allow read: if isMember(tripId);
+      // any member can edit details, but the organizer and join code can't be swapped
+      allow update: if isMember(tripId)
+        && request.resource.data.created_by == resource.data.created_by
+        && request.resource.data.join_code == resource.data.join_code;
+      allow delete: if signedIn() && resource.data.created_by == request.auth.uid;
+
+      // -- Team --
+      match /members/{uid} {
+        allow read: if isMember(tripId) || (signedIn() && request.auth.uid == uid);
+        allow create: if signedIn() && request.auth.uid == uid && (
+          // organizer, created in the same batch as the trip
+          (request.resource.data.role == 'owner'
+            && getAfter(tripPath(tripId)).data.created_by == request.auth.uid)
+          ||
+          // friend joining: must present the trip's join code
+          (request.resource.data.role == 'member'
+            && request.resource.data.code == get(tripPath(tripId)).data.join_code)
+        );
+        allow update: if false;
+        allow delete: if signedIn() &&
+          (request.auth.uid == uid || get(tripPath(tripId)).data.created_by == request.auth.uid);
+      }
+
+      // -- Bookings and places: any member can read and write --
+      match /{kind}/{docId} {
+        allow read, update, delete: if (kind == 'flights' || kind == 'hotels' || kind == 'places')
+          && isMember(tripId);
+        allow create: if (kind == 'flights' || kind == 'hotels' || kind == 'places')
+          && isMember(tripId)
+          && request.resource.data.added_by == request.auth.uid;
+      }
+
+      // -- Checklist: each person only touches their own --
+      match /checklist/{uid} {
+        allow read, write: if isMember(tripId) && request.auth.uid == uid;
+        // the organizer may clear everyone's ticks when deleting the trip
+        allow delete: if isMember(tripId) && get(tripPath(tripId)).data.created_by == request.auth.uid;
+      }
+    }
+
+    // -- Join codes: look up one by exact code (no listing) --
+    match /joinCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && getAfter(tripPath(request.resource.data.trip_id)).data.created_by == request.auth.uid
+        && getAfter(tripPath(request.resource.data.trip_id)).data.join_code == code;
+      allow update: if false;
+      allow delete: if signedIn()
+        && get(tripPath(resource.data.trip_id)).data.created_by == request.auth.uid;
+    }
+
+    // -- "My trips" list: only you --
+    match /users/{uid}/memberships/{tripId} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+  }
+}
