@@ -6,6 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useT } from '@/components/LanguageProvider';
 import Field from '@/components/Field';
 import LinkGrid from '@/components/LinkGrid';
+import Collapse from '@/components/Collapse';
 import { hotelLinks, mapsLink } from '@/lib/links';
 import { fmtDate, fmtMoney, nights } from '@/lib/format';
 import type { Hotel, Trip } from '@/lib/types';
@@ -106,44 +107,6 @@ export default function HotelsTab({ trip }: { trip: Trip }) {
 
   return (
     <>
-      <div className="card">
-        <h2>{t('ht.compareTitle')}</h2>
-        <p className="muted small" style={{ marginTop: 0 }}>
-          {t('ht.compareSub')}
-        </p>
-        <div className="form-grid">
-          <Field label={t('ht.city')}>
-            <input className="input" value={city} onChange={(e) => setCity(e.target.value)} />
-          </Field>
-          <Field label={t('ht.checkin')}>
-            <input className="input" type="date" value={checkin} onChange={(e) => setCheckin(e.target.value)} />
-          </Field>
-          <Field label={t('ht.checkout')}>
-            <input
-              className="input"
-              type="date"
-              min={checkin || undefined}
-              value={checkout}
-              onChange={(e) => setCheckout(e.target.value)}
-            />
-          </Field>
-          <Field label={t('ht.guests')}>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              max={16}
-              value={adults}
-              onChange={(e) => setAdults(Math.max(1, Math.min(16, Number(e.target.value) || 1)))}
-            />
-          </Field>
-        </div>
-        <div style={{ marginTop: '0.9rem' }}>
-          <LinkGrid links={hotelLinks({ city, checkin, checkout, adults, lang })} empty={t('ht.linksEmpty')} />
-        </div>
-        <p className="muted small">{t('ht.tip')}</p>
-      </div>
-
       <div className="card">
         <div className="spread">
           <div>
@@ -276,6 +239,40 @@ export default function HotelsTab({ trip }: { trip: Trip }) {
           )}
         </div>
       </div>
+
+      <Collapse title={t('ht.compareTitle')} sub={t('ht.compareSub')} autoOpen={hotels !== null && hotels.length === 0}>
+        <div className="form-grid">
+          <Field label={t('ht.city')}>
+            <input className="input" value={city} onChange={(e) => setCity(e.target.value)} />
+          </Field>
+          <Field label={t('ht.checkin')}>
+            <input className="input" type="date" value={checkin} onChange={(e) => setCheckin(e.target.value)} />
+          </Field>
+          <Field label={t('ht.checkout')}>
+            <input
+              className="input"
+              type="date"
+              min={checkin || undefined}
+              value={checkout}
+              onChange={(e) => setCheckout(e.target.value)}
+            />
+          </Field>
+          <Field label={t('ht.guests')}>
+            <input
+              className="input"
+              type="number"
+              min={1}
+              max={16}
+              value={adults}
+              onChange={(e) => setAdults(Math.max(1, Math.min(16, Number(e.target.value) || 1)))}
+            />
+          </Field>
+        </div>
+        <div style={{ marginTop: '0.9rem' }}>
+          <LinkGrid links={hotelLinks({ city, checkin, checkout, adults, lang })} empty={t('ht.linksEmpty')} />
+        </div>
+        <p className="muted small">{t('ht.tip')}</p>
+      </Collapse>
     </>
   );
 }

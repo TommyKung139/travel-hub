@@ -56,6 +56,11 @@ service cloud.firestore {
           && request.resource.data.added_by == request.auth.uid;
       }
 
+      // -- Itinerary: one shared plan, any member can read and edit --
+      match /itinerary/{docId} {
+        allow read, write: if isMember(tripId);
+      }
+
       // -- Checklist: each person only touches their own --
       match /checklist/{uid} {
         allow read, write: if isMember(tripId) && request.auth.uid == uid;

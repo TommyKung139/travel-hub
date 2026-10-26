@@ -50,8 +50,10 @@ Finally, tell Firebase about your site so login works there: **Authentication �
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | yes | The web app id |
 | `SERPAPI_KEY` | no | Turns on the **Show prices here too** button (live fares from Google Flights via SerpApi). Free plan: 250 searches/month |
 | `AVIATIONSTACK_KEY` | no | Turns on live flight status. Free plan: 100 requests/month |
+| `GEMINI_API_KEY` | no | Turns on the AI **Itinerary** tab (Google Gemini). Get a key at aistudio.google.com/apikey |
+| `GEMINI_MODEL` | no | Override the Gemini model name (default `gemini-3.8-flash`) |
 
-Without the two optional keys everything still works: you get the comparison links and the tracking links (FlightAware, Flightradar24).
+Without the optional keys everything still works: you get the comparison links and the tracking links (FlightAware, Flightradar24).
 
 Note: don't add an HTTP-referrer restriction to the Firebase API key in Google Cloud. The server-side fare/tracking routes use it to check that the caller is signed in, and those calls don't carry a referrer.
 
@@ -79,6 +81,14 @@ How joining works without a backend: a friend reads `joinCodes/{CODE}` to find t
 - Tracking uses **flight number + date** (e.g. `CI100` on 2026-11-20). A **ticket number** (13 digits) or **booking reference** cannot be used to look up a flight, so those are stored for your records only.
 - The free aviationstack plan serves live data, so status usually appears around the departure day, and `Track flight` may say "no live data yet" for flights weeks away. Each press uses 1 of your 100 monthly requests.
 
+## AI itinerary (Gemini)
+
+The **Itinerary** tab sends the trip's dates, flights, hotels and the places your group saved to Gemini, which returns a day-by-day plan: places grouped by area, meals, estimated travel time and distance between stops (starting from the hotel), and a list of places that didn't fit. Everything is editable afterwards (times, order, move to another day, add or delete stops) and auto-saved for the whole team.
+
+- Travel times and distances are the model's **estimates** from its own knowledge of the city, not live map data. Each leg has a Google Maps **Directions** link to double-check.
+- The plan is stored in `trips/{id}/itinerary/main`, so after adding this feature **publish the updated `firestore.rules`** (Firebase console, Firestore Database, Rules).
+- It needs a `GEMINI_API_KEY` set on Vercel (Settings, Environment Variables), then a redeploy. The key stays on the server and is never sent to the browser. Each person can generate up to 12 plans per hour.
+
 ## First run: if the build complains
 
 Run `npm run build` and fix whatever TypeScript reports. Everything is plain Next.js 15 App Router + TypeScript + the modular Firebase SDK. If something says "Missing or insufficient permissions", the rules from step 1.4 aren't published yet.
@@ -98,6 +108,7 @@ src/lib/checklist.ts         the travel guide content, English + 繁體中文 (u
 src/lib/i18n.ts              all interface text in both languages
 src/app/api/flights/search   live fare search (SerpApi)
 src/app/api/flights/track    live flight status (aviationstack)
+src/app/api/itinerary/generate  AI day-by-day plan (Gemini)
 src/app/trips/[id]           the trip page with its tabs
-src/components/trip/*        Flights, Hotels, Places, Checklist, Team tabs
+src/components/trip/*        Flights, Hotels, Places, Itinerary, Checklist, Team tabs
 ```

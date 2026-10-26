@@ -7,6 +7,7 @@ import { useT } from '@/components/LanguageProvider';
 import Field from '@/components/Field';
 import AirportInput from '@/components/AirportInput';
 import LinkGrid from '@/components/LinkGrid';
+import Collapse from '@/components/Collapse';
 import { flightLinks, trackLinks } from '@/lib/links';
 import { fmtDate, fmtDateTime, fmtDuration, fmtMoney } from '@/lib/format';
 import type { EndPoint, FareOffer, FareSearchResult, Flight, TrackResult, Trip } from '@/lib/types';
@@ -192,68 +193,6 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
 
   return (
     <>
-      {/* ───── Find flights ───── */}
-      <div className="card">
-        <h2>{t('fl.findTitle')}</h2>
-        <p className="muted small" style={{ marginTop: 0 }}>
-          {t('fl.findSub')}
-        </p>
-        <div className="form-grid">
-          <Field label={t('fl.from')}>
-            <AirportInput value={origin} onChange={setOrigin} required />
-          </Field>
-          <Field label={t('fl.to')}>
-            <AirportInput value={dest} onChange={setDest} placeholder="NRT" required />
-          </Field>
-          <Field label={t('fl.depart')}>
-            <input className="input" type="date" value={depart} onChange={(e) => setDepart(e.target.value)} />
-          </Field>
-          <Field label={t('fl.return')}>
-            <input
-              className="input"
-              type="date"
-              value={ret}
-              min={depart || undefined}
-              disabled={oneWay}
-              onChange={(e) => setRet(e.target.value)}
-            />
-          </Field>
-          <Field label={t('fl.travelers')}>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              max={9}
-              value={adults}
-              onChange={(e) => setAdults(Math.max(1, Math.min(9, Number(e.target.value) || 1)))}
-            />
-          </Field>
-          <Field label={t('fl.currency')}>
-            <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
-              {CURRENCIES.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          </Field>
-        </div>
-        <label className="check" style={{ marginTop: '0.4rem' }}>
-          <input type="checkbox" checked={oneWay} onChange={(e) => setOneWay(e.target.checked)} />
-          <span>{t('fl.oneWay')}</span>
-        </label>
-
-        <h3 style={{ marginTop: '0.8rem' }}>{t('fl.compareOn')}</h3>
-        <LinkGrid links={links} empty={t('fl.linksEmpty')} />
-
-        <div className="form-actions">
-          <button className="btn primary" disabled={!canSearch || searching} onClick={searchFares}>
-            {searching ? t('fl.searching') : t('fl.showPrices')}
-          </button>
-          <span className="muted small">{t('fl.quotaNote')}</span>
-        </div>
-
-        {fares && <FareResults result={fares} onUse={useOffer} />}
-      </div>
-
       {/* ───── Booked flights ───── */}
       <div className="card" id="add-flight">
         <div className="spread">
@@ -374,6 +313,64 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
           )}
         </div>
       </div>
+
+      {/* ───── Find flights ───── */}
+      <Collapse title={t('fl.findTitle')} sub={t('fl.findSub')} autoOpen={flights !== null && flights.length === 0}>
+        <div className="form-grid">
+          <Field label={t('fl.from')}>
+            <AirportInput value={origin} onChange={setOrigin} required />
+          </Field>
+          <Field label={t('fl.to')}>
+            <AirportInput value={dest} onChange={setDest} placeholder="NRT" required />
+          </Field>
+          <Field label={t('fl.depart')}>
+            <input className="input" type="date" value={depart} onChange={(e) => setDepart(e.target.value)} />
+          </Field>
+          <Field label={t('fl.return')}>
+            <input
+              className="input"
+              type="date"
+              value={ret}
+              min={depart || undefined}
+              disabled={oneWay}
+              onChange={(e) => setRet(e.target.value)}
+            />
+          </Field>
+          <Field label={t('fl.travelers')}>
+            <input
+              className="input"
+              type="number"
+              min={1}
+              max={9}
+              value={adults}
+              onChange={(e) => setAdults(Math.max(1, Math.min(9, Number(e.target.value) || 1)))}
+            />
+          </Field>
+          <Field label={t('fl.currency')}>
+            <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {CURRENCIES.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <label className="check" style={{ marginTop: '0.4rem' }}>
+          <input type="checkbox" checked={oneWay} onChange={(e) => setOneWay(e.target.checked)} />
+          <span>{t('fl.oneWay')}</span>
+        </label>
+
+        <h3 style={{ marginTop: '0.8rem' }}>{t('fl.compareOn')}</h3>
+        <LinkGrid links={links} empty={t('fl.linksEmpty')} />
+
+        <div className="form-actions">
+          <button className="btn primary" disabled={!canSearch || searching} onClick={searchFares}>
+            {searching ? t('fl.searching') : t('fl.showPrices')}
+          </button>
+          <span className="muted small">{t('fl.quotaNote')}</span>
+        </div>
+
+        {fares && <FareResults result={fares} onUse={useOffer} />}
+      </Collapse>
     </>
   );
 }

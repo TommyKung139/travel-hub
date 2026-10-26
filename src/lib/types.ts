@@ -116,3 +116,45 @@ export type TrackResult = {
   note?: string;
   error?: string;
 };
+
+// ───── AI itinerary (stored as one JSON string in trips/{id}/itinerary/main) ─────
+
+export type ItinKind = 'place' | 'meal' | 'transit' | 'hotel' | 'flight' | 'free' | 'other';
+export type TravelMode = 'walk' | 'transit' | 'drive' | '';
+
+export type ItinItem = {
+  id: string;
+  time: string; // "HH:MM" start time, '' if unknown
+  title: string;
+  kind: ItinKind;
+  place_id: string | null; // id of the saved place this stop came from
+  address: string; // used for map links
+  duration_min: number; // time spent here
+  travel_min: number; // getting here from the previous stop (or the hotel)
+  travel_mode: TravelMode;
+  distance_km: number;
+  notes: string;
+};
+
+export type ItinDay = { id: string; date: string; title: string; items: ItinItem[] };
+
+export type ItinUnscheduled = { id: string; title: string; place_id: string | null; address: string; reason: string };
+
+export type ItinSettings = {
+  pace: 'relaxed' | 'balanced' | 'packed';
+  day_start: string; // "09:00"
+  day_end: string; // "21:00"
+  arrival_time: string; // first day, optional
+  departure_time: string; // last day, optional
+  wishes: string;
+};
+
+export type Itinerary = {
+  days: ItinDay[];
+  unscheduled: ItinUnscheduled[];
+  summary: string;
+  warnings: string[];
+  settings: ItinSettings;
+  generated_by: string; // display name
+  generated_at: string; // ISO
+};

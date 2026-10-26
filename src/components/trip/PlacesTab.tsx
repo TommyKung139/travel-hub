@@ -6,6 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useT } from '@/components/LanguageProvider';
 import Field from '@/components/Field';
 import LinkGrid from '@/components/LinkGrid';
+import Collapse from '@/components/Collapse';
 import { mapsLink, placeLinks } from '@/lib/links';
 import { fmtDate } from '@/lib/format';
 import type { Key } from '@/lib/i18n';
@@ -99,30 +100,6 @@ export default function PlacesTab({ trip }: { trip: Trip }) {
 
   return (
     <>
-      <div className="card">
-        <h2>{t('pl.discoverTitle')}</h2>
-        <p className="muted small" style={{ marginTop: 0 }}>
-          {t('pl.discoverSub')}
-        </p>
-        <div className="form-grid">
-          <Field label={t('pl.city')}>
-            <input className="input" value={city} onChange={(e) => setCity(e.target.value)} />
-          </Field>
-          <Field label={t('pl.lookingFor')}>
-            <select className="input" value={topicId} onChange={(e) => setTopicId(e.target.value)}>
-              {TOPICS.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {t(x.label)}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-        <div style={{ marginTop: '0.9rem' }}>
-          <LinkGrid links={placeLinks({ city: cityName, query, lang })} empty={t('pl.linksEmpty')} />
-        </div>
-      </div>
-
       <div className="card">
         <div className="spread">
           <div>
@@ -231,6 +208,26 @@ export default function PlacesTab({ trip }: { trip: Trip }) {
           )}
         </div>
       </div>
+
+      <Collapse title={t('pl.discoverTitle')} sub={t('pl.discoverSub')} autoOpen={places !== null && places.length === 0}>
+        <div className="form-grid">
+          <Field label={t('pl.city')}>
+            <input className="input" value={city} onChange={(e) => setCity(e.target.value)} />
+          </Field>
+          <Field label={t('pl.lookingFor')}>
+            <select className="input" value={topicId} onChange={(e) => setTopicId(e.target.value)}>
+              {TOPICS.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {t(x.label)}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <div style={{ marginTop: '0.9rem' }}>
+          <LinkGrid links={placeLinks({ city: cityName, query, lang })} empty={t('pl.linksEmpty')} />
+        </div>
+      </Collapse>
     </>
   );
 }

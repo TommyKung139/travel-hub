@@ -179,3 +179,14 @@ export function trackLinks(flightNumber: string, lang: Lang = 'en'): SiteLink[] 
 export function mapsLink(query: string, lang: Lang = 'en'): string {
   return `https://www.google.com/maps/search/?api=1&query=${enc(query)}${hl(lang)}`;
 }
+
+// Google Maps directions between two free-text places (opens the route for the chosen travel mode).
+export function directionsLink(
+  from: string,
+  to: string,
+  mode: 'walk' | 'transit' | 'drive' | '' = 'transit',
+  lang: Lang = 'en'
+): string {
+  const tm = mode === 'walk' ? 'walking' : mode === 'drive' ? 'driving' : 'transit';
+  return `https://www.google.com/maps/dir/?api=1&origin=${enc(from)}&destination=${enc(to)}&travelmode=${tm}${hl(lang)}`;
+}

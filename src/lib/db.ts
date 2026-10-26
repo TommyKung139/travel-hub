@@ -15,7 +15,7 @@ import {
 import type { User } from 'firebase/auth';
 import { getDb } from '@/lib/firebase';
 import { tr } from '@/lib/i18n';
-import type { Member, Trip } from '@/lib/types';
+import type { Itinerary, Member, Trip } from '@/lib/types';
 
 /* Firestore layout (see firestore.rules):
  *   trips/{tripId}                       trip details + join_code
@@ -161,7 +161,7 @@ export async function leaveTrip(tripId: string, uid: string): Promise<void> {
 // Order matters: the owner has to stay a member until the content is gone.
 export async function deleteTrip(trip: Trip, uid: string): Promise<void> {
   const db = getDb();
-  for (const name of ['flights', 'hotels', 'places', 'checklist'] as const) {
+  for (const name of ['flights', 'hotels', 'places', 'checklist', 'itinerary'] as const) {
     const snap = await getDocs(collection(db, 'trips', trip.id, name));
     await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
   }
@@ -213,4 +213,25 @@ export async function setChecklistItem(tripId: string, uid: string, itemId: stri
     { done: checked ? arrayUnion(itemId) : arrayRemove(itemId) },
     { merge: true }
   );
+}
+
+// ───────────── itinerary (one shared plan per trip) ─────────────
+// Saved as a JSON string so nested lists can't trip over Firestore's array rules.
+
+export async function loadItinerary(tripId: string): Promise<Itinerary | null> {
+  const snap = await getDoc(doc(getDb(), 'trips', tripId, 'itinerary', 'main'));
+  if (!snap.exists()) return null;
+  try {
+    return JSON.parse(snap.data().json as string) as Itinerary;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveItinerary(tripId: string, uid: string, plan: Itinerary): Promise<void> {
+  await setDoc(doc(getDb(), 'trips', tripId, 'itinerary', 'main'), {
+    json: JSON.stringify(plan),
+    updated_by: uid,
+    updated_at: serverTimestamp(),
+  });
 }

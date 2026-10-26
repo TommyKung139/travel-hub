@@ -11,18 +11,20 @@ import AirportInput from '@/components/AirportInput';
 import FlightsTab from '@/components/trip/FlightsTab';
 import HotelsTab from '@/components/trip/HotelsTab';
 import PlacesTab from '@/components/trip/PlacesTab';
+import ItineraryTab from '@/components/trip/ItineraryTab';
 import ChecklistTab from '@/components/trip/ChecklistTab';
 import TeamTab from '@/components/trip/TeamTab';
 import { fmtRange, nights } from '@/lib/format';
 import type { Key } from '@/lib/i18n';
 import type { Trip } from '@/lib/types';
 
-type TabId = 'flights' | 'hotels' | 'places' | 'checklist' | 'team';
+type TabId = 'flights' | 'hotels' | 'places' | 'itinerary' | 'checklist' | 'team';
 
 const TABS: { id: TabId; label: Key }[] = [
   { id: 'flights', label: 'tab.flights' },
   { id: 'hotels', label: 'tab.hotels' },
   { id: 'places', label: 'tab.places' },
+  { id: 'itinerary', label: 'tab.itinerary' },
   { id: 'checklist', label: 'tab.checklist' },
   { id: 'team', label: 'tab.team' },
 ];
@@ -113,6 +115,7 @@ export default function TripPage() {
       {tab === 'flights' && <FlightsTab trip={trip} />}
       {tab === 'hotels' && <HotelsTab trip={trip} />}
       {tab === 'places' && <PlacesTab trip={trip} />}
+      {tab === 'itinerary' && <ItineraryTab trip={trip} />}
       {tab === 'checklist' && <ChecklistTab trip={trip} />}
       {tab === 'team' && <TeamTab trip={trip} />}
     </>
