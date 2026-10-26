@@ -5,11 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { errMsg, joinTripByCode } from '@/lib/db';
 import { useRequireAuth } from '@/components/AuthProvider';
+import { useT } from '@/components/LanguageProvider';
 
 // Invite link: /join/ABC123 — signs you in if needed, then joins the trip.
 export default function JoinPage() {
   const { code } = useParams<{ code: string }>();
   const { user, displayName } = useRequireAuth();
+  const { t } = useT();
   const router = useRouter();
   const [error, setError] = useState('');
   const started = useRef(false);
@@ -25,13 +27,13 @@ export default function JoinPage() {
   if (error) {
     return (
       <div className="card" style={{ maxWidth: 480, margin: '2rem auto' }}>
-        <h2>Couldn&apos;t join that trip</h2>
+        <h2>{t('join.failTitle')}</h2>
         <div className="error">{error}</div>
         <Link href="/trips" className="btn">
-          Back to my trips
+          {t('join.back')}
         </Link>
       </div>
     );
   }
-  return <p className="muted">Joining trip…</p>;
+  return <p className="muted">{t('join.joining')}</p>;
 }

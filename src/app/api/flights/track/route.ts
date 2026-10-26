@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyUser } from '@/lib/server-auth';
+import { translateWith, type Lang } from '@/lib/i18n';
 import type { EndPoint, TrackResult, TrackedFlight } from '@/lib/types';
 
 // Live flight status through aviationstack (free plan = 100 requests/month,
@@ -41,7 +42,7 @@ function toFlight(f: any): TrackedFlight {
   };
 }
 
-async function callApi(key: string, flight: string): Promise<any> {
+async function callApi(key: string, flight: string, unreachable: string): Promise<any> {
   const qs = `access_key=${encodeURIComponent(key)}&flight_iata=${encodeURIComponent(flight)}&limit=20`;
   // The free plan may only serve plain HTTP, so fall back if HTTPS is refused.
   for (const proto of ['https', 'http']) {
@@ -54,32 +55,32 @@ async function callApi(key: string, flight: string): Promise<any> {
       // try the next protocol
     }
   }
-  throw new Error('Could not reach the flight data provider.');
+  throw new Error(unreachable);
 }
 
 export async function GET(req: Request) {
+  const u = new URL(req.url);
+  const lang: Lang = u.searchParams.get('lang') === 'zh' ? 'zh' : 'en';
+  const m = (key: Parameters<typeof translateWith>[1], vars?: Record<string, string | number>) =>
+    translateWith(lang, key, vars);
+
   const user = await verifyUser(req);
-  if (!user) return NextResponse.json({ error: 'Please sign in.' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: m('srv.signIn') }, { status: 401 });
 
   const key = process.env.AVIATIONSTACK_KEY;
   if (!key) {
-    const body: TrackResult = {
-      configured: false,
-      found: false,
-      note: 'Live tracking is off (no AVIATIONSTACK_KEY set). Use the links below.',
-    };
+    const body: TrackResult = { configured: false, found: false, note: m('srv.trackOff') };
     return NextResponse.json(body);
   }
 
-  const u = new URL(req.url);
   const flight = (u.searchParams.get('flight') ?? '').replace(/\s+/g, '').toUpperCase();
   const date = u.searchParams.get('date') ?? '';
   if (!/^[A-Z0-9]{2}\d{1,4}[A-Z]?$/.test(flight)) {
-    return NextResponse.json({ error: 'Flight number should look like CI100 or BR198.' }, { status: 400 });
+    return NextResponse.json({ error: m('srv.trackBadFlight') }, { status: 400 });
   }
 
   try {
-    const json = await callApi(key, flight);
+    const json = await callApi(key, flight, m('srv.cantReach'));
     if (json?.error) {
       const body: TrackResult = {
         configured: true,
@@ -91,11 +92,7 @@ export async function GET(req: Request) {
 
     const rows: any[] = Array.isArray(json?.data) ? json.data : [];
     if (!rows.length) {
-      const body: TrackResult = {
-        configured: true,
-        found: false,
-        note: 'No live data yet for this flight. Status usually appears around the departure day.',
-      };
+      const body: TrackResult = { configured: true, found: false, note: m('srv.trackNoData') };
       return NextResponse.json(body);
     }
 
@@ -108,7 +105,7 @@ export async function GET(req: Request) {
       flight: toFlight(chosen),
       note: exact
         ? undefined
-        : `Showing the most recent data (${chosen.flight_date}), since there is nothing for ${date || 'your date'} yet.`,
+        : m('srv.trackOtherDate', { date: chosen.flight_date, want: date || m('srv.yourDate') }),
     };
     return NextResponse.json(body);
   } catch (e) {

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createTrip, errMsg, joinTripByCode, listMyTrips } from '@/lib/db';
 import { useRequireAuth } from '@/components/AuthProvider';
+import { useT } from '@/components/LanguageProvider';
 import Field from '@/components/Field';
 import AirportInput from '@/components/AirportInput';
 import { fmtRange } from '@/lib/format';
@@ -12,6 +13,7 @@ import type { Trip } from '@/lib/types';
 
 export default function TripsPage() {
   const { user, displayName, loading } = useRequireAuth();
+  const { t } = useT();
   const router = useRouter();
   const [trips, setTrips] = useState<Trip[] | null>(null);
   const [error, setError] = useState('');
@@ -80,14 +82,14 @@ export default function TripsPage() {
     }
   }
 
-  if (loading || !user) return <p className="muted">Loading…</p>;
+  if (loading || !user) return <p className="muted">{t('common.loading')}</p>;
 
   return (
     <>
       <div className="spread">
-        <h1>My trips</h1>
+        <h1>{t('trips.title')}</h1>
         <button className="btn primary" onClick={() => setShowCreate((s) => !s)}>
-          {showCreate ? 'Cancel' : '+ New trip'}
+          {showCreate ? t('common.cancel') : t('trips.new')}
         </button>
       </div>
 
@@ -95,36 +97,36 @@ export default function TripsPage() {
 
       {showCreate && (
         <form className="card" onSubmit={create}>
-          <h2>Start planning</h2>
+          <h2>{t('trips.startPlanning')}</h2>
           <div className="form-grid">
-            <Field label="Trip name">
+            <Field label={t('trips.name')}>
               <input
                 className="input"
-                placeholder="Tokyo with the crew"
+                placeholder={t('trips.namePh')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
               />
             </Field>
-            <Field label="Where to? (city or country)">
+            <Field label={t('trips.where')}>
               <input
                 className="input"
-                placeholder="Tokyo, Japan"
+                placeholder={t('trips.wherePh')}
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
                 required
               />
             </Field>
-            <Field label="Flying from (airport code)" hint="e.g. TPE">
+            <Field label={t('trips.from')} hint={t('trips.fromHint')}>
               <AirportInput value={origin} onChange={setOrigin} />
             </Field>
-            <Field label="Flying to (airport code)" hint="e.g. NRT or HND">
+            <Field label={t('trips.to')} hint={t('trips.toHint')}>
               <AirportInput value={destCode} onChange={setDestCode} placeholder="NRT" />
             </Field>
-            <Field label="Leaving on">
+            <Field label={t('trips.leaving')}>
               <input className="input" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
             </Field>
-            <Field label="Coming back on">
+            <Field label={t('trips.returning')}>
               <input
                 className="input"
                 type="date"
@@ -136,9 +138,9 @@ export default function TripsPage() {
           </div>
           <div className="form-actions">
             <button className="btn primary" disabled={creating}>
-              {creating ? 'Creating…' : 'Create trip'}
+              {creating ? t('trips.creating') : t('trips.create')}
             </button>
-            <span className="muted small">You&apos;ll get a code to share with friends.</span>
+            <span className="muted small">{t('trips.codeNote')}</span>
           </div>
         </form>
       )}
@@ -146,8 +148,8 @@ export default function TripsPage() {
       <form className="card flat" onSubmit={join}>
         <div className="spread">
           <div>
-            <h3>Got a trip code from a friend?</h3>
-            <span className="muted small">Enter it to join their team.</span>
+            <h3>{t('trips.joinTitle')}</h3>
+            <span className="muted small">{t('trips.joinSub')}</span>
           </div>
           <div className="row">
             <input
@@ -159,32 +161,32 @@ export default function TripsPage() {
               required
             />
             <button className="btn" disabled={joining}>
-              {joining ? 'Joining…' : 'Join trip'}
+              {joining ? t('trips.joining') : t('trips.join')}
             </button>
           </div>
         </div>
       </form>
 
       {trips === null ? (
-        <p className="muted">Loading trips…</p>
+        <p className="muted">{t('trips.loading')}</p>
       ) : trips.length === 0 ? (
         <div className="card">
-          <p style={{ margin: 0 }}>No trips yet. Create one, or join a friend&apos;s with a code.</p>
+          <p style={{ margin: 0 }}>{t('trips.empty')}</p>
         </div>
       ) : (
-        trips.map((t) => (
-          <Link key={t.id} href={`/trips/${t.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+        trips.map((trip) => (
+          <Link key={trip.id} href={`/trips/${trip.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="card">
               <div className="card-head">
                 <div>
-                  <h2 style={{ marginBottom: 2 }}>{t.name}</h2>
+                  <h2 style={{ marginBottom: 2 }}>{trip.name}</h2>
                   <div className="muted">
-                    {t.origin ? `${t.origin} → ` : ''}
-                    {t.destination}
-                    {t.destination_code ? ` (${t.destination_code})` : ''}
+                    {trip.origin ? `${trip.origin} → ` : ''}
+                    {trip.destination}
+                    {trip.destination_code ? ` (${trip.destination_code})` : ''}
                   </div>
                 </div>
-                <span className="badge">{fmtRange(t.start_date, t.end_date)}</span>
+                <span className="badge">{fmtRange(trip.start_date, trip.end_date, t('date.notSet'))}</span>
               </div>
             </div>
           </Link>

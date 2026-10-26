@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+import { useT } from '@/components/LanguageProvider';
 
 export default function Home() {
   const { user, loading } = useAuth();
+  const { t } = useT();
   const router = useRouter();
 
   useEffect(() => {
@@ -15,17 +17,14 @@ export default function Home() {
 
   return (
     <div className="hero">
-      <h1>Plan trips abroad together, without the chaos.</h1>
-      <p>
-        Create a trip, share a code with your friends, compare flights and hotels, keep every
-        booking in one place, and track your flight on the way.
-      </p>
+      <h1>{t('home.title')}</h1>
+      <p>{t('home.sub')}</p>
       <div className="row" style={{ marginTop: '1.2rem' }}>
         <Link href="/login" className="btn primary">
-          Sign in or create account
+          {t('home.cta')}
         </Link>
         <Link href="/guide" className="btn">
-          Read the travel guide
+          {t('home.guide')}
         </Link>
       </div>
     </div>

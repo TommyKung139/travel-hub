@@ -12,8 +12,8 @@
   --amber-soft: #fff4d6;
   --radius: 14px;
   --shadow: 0 1px 2px rgba(27, 36, 48, 0.06), 0 4px 14px rgba(27, 36, 48, 0.05);
-  --serif: Georgia, 'Times New Roman', serif;
-  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans TC', sans-serif;
+  --serif: Georgia, 'Times New Roman', 'Noto Serif TC', 'PMingLiU', 'Songti TC', serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif;
 }
 
 * {

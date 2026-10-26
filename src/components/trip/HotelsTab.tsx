@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { addSub, errMsg, listSub, removeSub } from '@/lib/db';
 import { useAuth } from '@/components/AuthProvider';
+import { useT } from '@/components/LanguageProvider';
 import Field from '@/components/Field';
 import LinkGrid from '@/components/LinkGrid';
 import { hotelLinks, mapsLink } from '@/lib/links';
@@ -25,6 +26,8 @@ type Draft = {
 
 export default function HotelsTab({ trip }: { trip: Trip }) {
   const { user, displayName } = useAuth();
+  const { t, lang } = useT();
+
   // search
   const [city, setCity] = useState(trip.destination);
   const [checkin, setCheckin] = useState(trip.start_date ?? '');
@@ -92,7 +95,7 @@ export default function HotelsTab({ trip }: { trip: Trip }) {
   }
 
   async function remove(id: string) {
-    if (!confirm('Remove this hotel?')) return;
+    if (!confirm(t('ht.confirmRemove'))) return;
     try {
       await removeSub(trip.id, 'hotels', id);
       load();
@@ -104,21 +107,27 @@ export default function HotelsTab({ trip }: { trip: Trip }) {
   return (
     <>
       <div className="card">
-        <h2>1. Compare hotel prices</h2>
+        <h2>{t('ht.compareTitle')}</h2>
         <p className="muted small" style={{ marginTop: 0 }}>
-          Each button opens that site with your city and dates already filled in.
+          {t('ht.compareSub')}
         </p>
         <div className="form-grid">
-          <Field label="City">
+          <Field label={t('ht.city')}>
             <input className="input" value={city} onChange={(e) => setCity(e.target.value)} />
           </Field>
-          <Field label="Check-in">
+          <Field label={t('ht.checkin')}>
             <input className="input" type="date" value={checkin} onChange={(e) => setCheckin(e.target.value)} />
           </Field>
-          <Field label="Check-out">
-            <input className="input" type="date" min={checkin || undefined} value={checkout} onChange={(e) => setCheckout(e.target.value)} />
+          <Field label={t('ht.checkout')}>
+            <input
+              className="input"
+              type="date"
+              min={checkin || undefined}
+              value={checkout}
+              onChange={(e) => setCheckout(e.target.value)}
+            />
           </Field>
-          <Field label="Guests">
+          <Field label={t('ht.guests')}>
             <input
               className="input"
               type="number"
@@ -130,65 +139,84 @@ export default function HotelsTab({ trip }: { trip: Trip }) {
           </Field>
         </div>
         <div style={{ marginTop: '0.9rem' }}>
-          <LinkGrid links={hotelLinks({ city, checkin, checkout, adults })} empty="Enter a city to get comparison links." />
+          <LinkGrid links={hotelLinks({ city, checkin, checkout, adults, lang })} empty={t('ht.linksEmpty')} />
         </div>
-        <p className="muted small">
-          Tip: prefer free-cancellation rooms until plans are firm, and check the location against
-          transit and night-time safety.
-        </p>
+        <p className="muted small">{t('ht.tip')}</p>
       </div>
 
       <div className="card">
         <div className="spread">
           <div>
-            <h2>2. Your hotels</h2>
-            <span className="muted small">Found one? Save the details so the whole team has them.</span>
+            <h2>{t('ht.yourTitle')}</h2>
+            <span className="muted small">{t('ht.yourSub')}</span>
           </div>
           <button className="btn primary" onClick={() => setShowForm((s) => !s)}>
-            {showForm ? 'Cancel' : '+ Add hotel'}
+            {showForm ? t('common.cancel') : t('ht.add')}
           </button>
         </div>
 
         {showForm && (
           <form onSubmit={save} style={{ marginTop: '1rem' }}>
             <div className="form-grid">
-              <Field label="Hotel name">
+              <Field label={t('ht.name')}>
                 <input className="input" value={draft.name} onChange={(e) => set('name')(e.target.value)} required />
               </Field>
-              <Field label="Address" hint="Tip: paste it in the local language too">
+              <Field label={t('ht.address')} hint={t('ht.addressHint')}>
                 <input className="input" value={draft.address} onChange={(e) => set('address')(e.target.value)} />
               </Field>
-              <Field label="Check-in">
+              <Field label={t('ht.checkin')}>
                 <input className="input" type="date" value={draft.check_in} onChange={(e) => set('check_in')(e.target.value)} />
               </Field>
-              <Field label="Check-out">
+              <Field label={t('ht.checkout')}>
                 <input className="input" type="date" value={draft.check_out} onChange={(e) => set('check_out')(e.target.value)} />
               </Field>
-              <Field label="Total price">
+              <Field label={t('ht.price')}>
                 <div className="row" style={{ flexWrap: 'nowrap' }}>
-                  <input className="input" type="number" min={0} step="any" value={draft.price} onChange={(e) => set('price')(e.target.value)} />
-                  <select className="input" style={{ width: 90 }} value={draft.currency} onChange={(e) => set('currency')(e.target.value)}>
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={draft.price}
+                    onChange={(e) => set('price')(e.target.value)}
+                  />
+                  <select
+                    className="input"
+                    style={{ width: 90 }}
+                    value={draft.currency}
+                    onChange={(e) => set('currency')(e.target.value)}
+                  >
                     {CURRENCIES.map((c) => (
                       <option key={c}>{c}</option>
                     ))}
                   </select>
                 </div>
               </Field>
-              <Field label="Confirmation number">
+              <Field label={t('ht.confirmation')}>
                 <input className="input" value={draft.confirmation} onChange={(e) => set('confirmation')(e.target.value)} />
               </Field>
-              <Field label="Booking link">
-                <input className="input" value={draft.booking_url} onChange={(e) => set('booking_url')(e.target.value)} placeholder="https://…" />
+              <Field label={t('ht.bookingLink')}>
+                <input
+                  className="input"
+                  value={draft.booking_url}
+                  onChange={(e) => set('booking_url')(e.target.value)}
+                  placeholder="https://…"
+                />
               </Field>
               <div className="span-all">
-                <Field label="Notes">
-                  <textarea className="input" value={draft.notes} onChange={(e) => set('notes')(e.target.value)} placeholder="Check-in time, breakfast, cancellation deadline…" />
+                <Field label={t('ht.notes')}>
+                  <textarea
+                    className="input"
+                    value={draft.notes}
+                    onChange={(e) => set('notes')(e.target.value)}
+                    placeholder={t('ht.notesPh')}
+                  />
                 </Field>
               </div>
             </div>
             <div className="form-actions">
               <button className="btn primary" disabled={saving}>
-                {saving ? 'Saving…' : 'Save hotel'}
+                {saving ? t('common.saving') : t('ht.save')}
               </button>
             </div>
           </form>
@@ -198,9 +226,9 @@ export default function HotelsTab({ trip }: { trip: Trip }) {
 
         <div style={{ marginTop: '1rem' }}>
           {hotels === null ? (
-            <p className="muted">Loading…</p>
+            <p className="muted">{t('common.loading')}</p>
           ) : hotels.length === 0 ? (
-            <p className="muted">No hotels added yet.</p>
+            <p className="muted">{t('ht.none')}</p>
           ) : (
             <ul className="item-list">
               {hotels.map((h) => {
@@ -213,30 +241,31 @@ export default function HotelsTab({ trip }: { trip: Trip }) {
                         {h.address && (
                           <div className="small">
                             {h.address}{' '}
-                            <a href={mapsLink(`${h.name} ${h.address}`)} target="_blank" rel="noopener noreferrer">
-                              map ↗
+                            <a href={mapsLink(`${h.name} ${h.address}`, lang)} target="_blank" rel="noopener noreferrer">
+                              {t('ht.mapLink')}
                             </a>
                           </div>
                         )}
                         <div className="small">
-                          {h.check_in ? fmtDate(h.check_in) : 'Check-in ?'} → {h.check_out ? fmtDate(h.check_out) : 'Check-out ?'}
-                          {n ? ` · ${n} nights` : ''}
+                          {h.check_in ? fmtDate(h.check_in) : t('ht.checkInUnknown')} →{' '}
+                          {h.check_out ? fmtDate(h.check_out) : t('ht.checkOutUnknown')}
+                          {n ? ` · ${t('common.nights', { n })}` : ''}
                         </div>
                         <div className="muted small">
                           {h.price != null && <>{fmtMoney(h.price, h.currency)} · </>}
-                          {h.confirmation && <>Confirmation {h.confirmation} · </>}
-                          added by {h.added_by_name ?? 'someone'}
+                          {h.confirmation && <>{t('ht.confirmationShort', { c: h.confirmation })} · </>}
+                          {t('common.addedBy', { name: h.added_by_name ?? t('common.someone') })}
                         </div>
                         {h.notes && <div className="small" style={{ marginTop: 4 }}>{h.notes}</div>}
                       </div>
                       <div className="row">
                         {h.booking_url && (
                           <a className="btn small" href={h.booking_url} target="_blank" rel="noopener noreferrer">
-                            Booking ↗
+                            {t('ht.bookingBtn')}
                           </a>
                         )}
                         <button className="btn small danger" onClick={() => remove(h.id)}>
-                          Remove
+                          {t('common.remove')}
                         </button>
                       </div>
                     </div>

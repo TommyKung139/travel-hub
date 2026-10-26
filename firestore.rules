@@ -20,7 +20,7 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/trips/$(tripId)/members/$(request.auth.uid));
     }
 
-    // ── Trips ──
+    // -- Trips --
     match /trips/{tripId} {
       allow create: if signedIn() && request.resource.data.created_by == request.auth.uid;
       allow read: if isMember(tripId);
@@ -30,7 +30,7 @@ service cloud.firestore {
         && request.resource.data.join_code == resource.data.join_code;
       allow delete: if signedIn() && resource.data.created_by == request.auth.uid;
 
-      // ── Team ──
+      // -- Team --
       match /members/{uid} {
         allow read: if isMember(tripId) || (signedIn() && request.auth.uid == uid);
         allow create: if signedIn() && request.auth.uid == uid && (
@@ -47,7 +47,7 @@ service cloud.firestore {
           (request.auth.uid == uid || get(tripPath(tripId)).data.created_by == request.auth.uid);
       }
 
-      // ── Bookings and places: any member can read and write ──
+      // -- Bookings and places: any member can read and write --
       match /{kind}/{docId} {
         allow read, update, delete: if (kind == 'flights' || kind == 'hotels' || kind == 'places')
           && isMember(tripId);
@@ -56,7 +56,7 @@ service cloud.firestore {
           && request.resource.data.added_by == request.auth.uid;
       }
 
-      // ── Checklist: each person only touches their own ──
+      // -- Checklist: each person only touches their own --
       match /checklist/{uid} {
         allow read, write: if isMember(tripId) && request.auth.uid == uid;
         // the organizer may clear everyone's ticks when deleting the trip
@@ -64,7 +64,7 @@ service cloud.firestore {
       }
     }
 
-    // ── Join codes: look up one by exact code (no listing) ──
+    // -- Join codes: look up one by exact code (no listing) --
     match /joinCodes/{code} {
       allow get: if signedIn();
       allow list: if false;
@@ -76,7 +76,7 @@ service cloud.firestore {
         && get(tripPath(resource.data.trip_id)).data.created_by == request.auth.uid;
     }
 
-    // ── "My trips" list: only you ──
+    // -- "My trips" list: only you --
     match /users/{uid}/memberships/{tripId} {
       allow read, write: if signedIn() && request.auth.uid == uid;
     }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { addSub, errMsg, listSub, removeSub } from '@/lib/db';
 import { useAuth } from '@/components/AuthProvider';
+import { useT } from '@/components/LanguageProvider';
 import Field from '@/components/Field';
 import AirportInput from '@/components/AirportInput';
 import LinkGrid from '@/components/LinkGrid';
@@ -40,6 +41,7 @@ const CURRENCIES = ['USD', 'TWD', 'EUR', 'JPY', 'KRW', 'GBP', 'HKD', 'SGD', 'AUD
 
 export default function FlightsTab({ trip }: { trip: Trip }) {
   const { user, displayName, getToken } = useAuth();
+  const { t, lang } = useT();
 
   // ── search state ──
   const [origin, setOrigin] = useState(trip.origin ?? '');
@@ -84,6 +86,7 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
     depart,
     ret: oneWay ? undefined : ret || undefined,
     adults,
+    lang,
   });
 
   async function searchFares() {
@@ -97,6 +100,7 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
       depart,
       adults: String(adults),
       currency,
+      lang,
     });
     if (!oneWay && ret) qs.set('return', ret);
     try {
@@ -105,7 +109,7 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
       });
       setFares((await res.json()) as FareSearchResult);
     } catch {
-      setFares({ configured: true, offers: [], error: 'Could not reach the search service.' });
+      setFares({ configured: true, offers: [], error: t('fl.searchUnreachable') });
     }
     setSearching(false);
   }
@@ -155,7 +159,7 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
   }
 
   async function remove(id: string) {
-    if (!confirm('Remove this flight?')) return;
+    if (!confirm(t('fl.confirmRemove'))) return;
     try {
       await removeSub(trip.id, 'flights', id);
       load();
@@ -167,18 +171,18 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
   async function track(f: Flight) {
     const token = await getToken();
     if (!token) return;
-    setTracking((t) => ({ ...t, [f.id]: 'loading' }));
+    setTracking((s) => ({ ...s, [f.id]: 'loading' }));
     try {
       const res = await fetch(
-        `/api/flights/track?flight=${encodeURIComponent(f.flight_number)}&date=${f.flight_date}`,
+        `/api/flights/track?flight=${encodeURIComponent(f.flight_number)}&date=${f.flight_date}&lang=${lang}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const json = (await res.json()) as TrackResult;
-      setTracking((t) => ({ ...t, [f.id]: json }));
+      setTracking((s) => ({ ...s, [f.id]: json }));
     } catch {
-      setTracking((t) => ({
-        ...t,
-        [f.id]: { configured: true, found: false, error: 'Could not reach the tracking service.' },
+      setTracking((s) => ({
+        ...s,
+        [f.id]: { configured: true, found: false, error: t('fl.trackUnreachable') },
       }));
     }
   }
@@ -190,22 +194,21 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
     <>
       {/* ───── Find flights ───── */}
       <div className="card">
-        <h2>1. Find the best price</h2>
+        <h2>{t('fl.findTitle')}</h2>
         <p className="muted small" style={{ marginTop: 0 }}>
-          Pick your route and dates, compare prices on the big booking sites, then book wherever
-          is cheapest.
+          {t('fl.findSub')}
         </p>
         <div className="form-grid">
-          <Field label="From">
+          <Field label={t('fl.from')}>
             <AirportInput value={origin} onChange={setOrigin} required />
           </Field>
-          <Field label="To">
+          <Field label={t('fl.to')}>
             <AirportInput value={dest} onChange={setDest} placeholder="NRT" required />
           </Field>
-          <Field label="Depart">
+          <Field label={t('fl.depart')}>
             <input className="input" type="date" value={depart} onChange={(e) => setDepart(e.target.value)} />
           </Field>
-          <Field label="Return">
+          <Field label={t('fl.return')}>
             <input
               className="input"
               type="date"
@@ -215,7 +218,7 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
               onChange={(e) => setRet(e.target.value)}
             />
           </Field>
-          <Field label="Travelers">
+          <Field label={t('fl.travelers')}>
             <input
               className="input"
               type="number"
@@ -225,7 +228,7 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
               onChange={(e) => setAdults(Math.max(1, Math.min(9, Number(e.target.value) || 1)))}
             />
           </Field>
-          <Field label="Currency (in-app prices)">
+          <Field label={t('fl.currency')}>
             <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {CURRENCIES.map((c) => (
                 <option key={c}>{c}</option>
@@ -235,17 +238,17 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
         </div>
         <label className="check" style={{ marginTop: '0.4rem' }}>
           <input type="checkbox" checked={oneWay} onChange={(e) => setOneWay(e.target.checked)} />
-          <span>One-way trip</span>
+          <span>{t('fl.oneWay')}</span>
         </label>
 
-        <h3 style={{ marginTop: '0.8rem' }}>Compare on these sites</h3>
-        <LinkGrid links={links} empty="Enter both airport codes and a departure date to get comparison links." />
+        <h3 style={{ marginTop: '0.8rem' }}>{t('fl.compareOn')}</h3>
+        <LinkGrid links={links} empty={t('fl.linksEmpty')} />
 
         <div className="form-actions">
           <button className="btn primary" disabled={!canSearch || searching} onClick={searchFares}>
-            {searching ? 'Searching…' : 'Show prices here too'}
+            {searching ? t('fl.searching') : t('fl.showPrices')}
           </button>
-          <span className="muted small">Pulls live fares into this page (uses 1 search from the free monthly quota).</span>
+          <span className="muted small">{t('fl.quotaNote')}</span>
         </div>
 
         {fares && <FareResults result={fares} onUse={useOffer} />}
@@ -255,20 +258,18 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
       <div className="card" id="add-flight">
         <div className="spread">
           <div>
-            <h2>2. Your booked flights</h2>
-            <span className="muted small">
-              Booked something? Add it here so everyone on the trip can see it and track it.
-            </span>
+            <h2>{t('fl.bookedTitle')}</h2>
+            <span className="muted small">{t('fl.bookedSub')}</span>
           </div>
           <button className="btn primary" onClick={() => setShowForm((s) => !s)}>
-            {showForm ? 'Cancel' : '+ Add booked flight'}
+            {showForm ? t('common.cancel') : t('fl.addBtn')}
           </button>
         </div>
 
         {showForm && (
           <form onSubmit={save} style={{ marginTop: '1rem' }}>
             <div className="form-grid">
-              <Field label="Flight number" hint="From your ticket, e.g. CI100. Used for live tracking.">
+              <Field label={t('fl.flightNo')} hint={t('fl.flightNoHint')}>
                 <input
                   className="input"
                   value={draft.flight_number}
@@ -277,7 +278,7 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
                   required
                 />
               </Field>
-              <Field label="Flight date">
+              <Field label={t('fl.flightDate')}>
                 <input
                   className="input"
                   type="date"
@@ -286,25 +287,46 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
                   required
                 />
               </Field>
-              <Field label="Airline">
-                <input className="input" value={draft.airline} onChange={(e) => set('airline')(e.target.value)} placeholder="China Airlines" />
+              <Field label={t('fl.airline')}>
+                <input
+                  className="input"
+                  value={draft.airline}
+                  onChange={(e) => set('airline')(e.target.value)}
+                  placeholder={t('fl.airlinePh')}
+                />
               </Field>
-              <Field label="From">
+              <Field label={t('fl.from')}>
                 <AirportInput value={draft.origin} onChange={set('origin')} />
               </Field>
-              <Field label="To">
+              <Field label={t('fl.to')}>
                 <AirportInput value={draft.destination} onChange={set('destination')} placeholder="NRT" />
               </Field>
-              <Field label="Booking reference (PNR)" hint="6 characters, e.g. K7J2QP">
-                <input className="input" value={draft.booking_ref} onChange={(e) => set('booking_ref')(e.target.value.toUpperCase())} />
+              <Field label={t('fl.pnr')} hint={t('fl.pnrHint')}>
+                <input
+                  className="input"
+                  value={draft.booking_ref}
+                  onChange={(e) => set('booking_ref')(e.target.value.toUpperCase())}
+                />
               </Field>
-              <Field label="Ticket number" hint="13 digits, for your records">
+              <Field label={t('fl.ticketNo')} hint={t('fl.ticketNoHint')}>
                 <input className="input" value={draft.ticket_number} onChange={(e) => set('ticket_number')(e.target.value)} />
               </Field>
-              <Field label="Price paid">
+              <Field label={t('fl.pricePaid')}>
                 <div className="row" style={{ flexWrap: 'nowrap' }}>
-                  <input className="input" type="number" min={0} step="any" value={draft.price} onChange={(e) => set('price')(e.target.value)} />
-                  <select className="input" style={{ width: 90 }} value={draft.currency} onChange={(e) => set('currency')(e.target.value)}>
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={draft.price}
+                    onChange={(e) => set('price')(e.target.value)}
+                  />
+                  <select
+                    className="input"
+                    style={{ width: 90 }}
+                    value={draft.currency}
+                    onChange={(e) => set('currency')(e.target.value)}
+                  >
                     {CURRENCIES.map((c) => (
                       <option key={c}>{c}</option>
                     ))}
@@ -312,14 +334,19 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
                 </div>
               </Field>
               <div className="span-all">
-                <Field label="Notes">
-                  <textarea className="input" value={draft.notes} onChange={(e) => set('notes')(e.target.value)} placeholder="Seats, baggage, terminal…" />
+                <Field label={t('fl.notes')}>
+                  <textarea
+                    className="input"
+                    value={draft.notes}
+                    onChange={(e) => set('notes')(e.target.value)}
+                    placeholder={t('fl.notesPh')}
+                  />
                 </Field>
               </div>
             </div>
             <div className="form-actions">
               <button className="btn primary" disabled={saving}>
-                {saving ? 'Saving…' : 'Save flight'}
+                {saving ? t('common.saving') : t('fl.save')}
               </button>
             </div>
           </form>
@@ -329,9 +356,9 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
 
         <div style={{ marginTop: '1rem' }}>
           {flights === null ? (
-            <p className="muted">Loading…</p>
+            <p className="muted">{t('common.loading')}</p>
           ) : flights.length === 0 ? (
-            <p className="muted">No flights added yet.</p>
+            <p className="muted">{t('fl.none')}</p>
           ) : (
             <ul className="item-list">
               {flights.map((f) => (
@@ -352,20 +379,22 @@ export default function FlightsTab({ trip }: { trip: Trip }) {
 }
 
 function FareResults({ result, onUse }: { result: FareSearchResult; onUse: (o: FareOffer) => void }) {
+  const { t, tOr } = useT();
   if (!result.configured) return <div className="notice">{result.note}</div>;
   if (result.error) return <div className="error">{result.error}</div>;
-  if (!result.offers.length) return <div className="notice">No fares came back for that search. Try other dates.</div>;
+  if (!result.offers.length) return <div className="notice">{t('fl.noFares')}</div>;
 
   const ins = result.insights;
+  const cur = result.offers[0]?.currency;
   return (
     <div style={{ marginTop: '1rem' }}>
-      <h3>Live fares (cheapest first)</h3>
+      <h3>{t('fl.liveTitle')}</h3>
       {ins?.lowest != null && (
         <p className="muted small" style={{ marginTop: 0 }}>
-          Lowest {fmtMoney(ins.lowest, result.offers[0]?.currency)}
-          {ins.level ? ` · prices are ${ins.level} for this route` : ''}
+          {t('fl.lowest', { price: fmtMoney(ins.lowest, cur) })}
+          {ins.level ? t('fl.level', { level: tOr(`lvl.${ins.level}`, ins.level) }) : ''}
           {ins.typicalLow != null && ins.typicalHigh != null
-            ? ` · typical ${fmtMoney(ins.typicalLow, result.offers[0]?.currency)}–${fmtMoney(ins.typicalHigh, result.offers[0]?.currency)}`
+            ? t('fl.typical', { low: fmtMoney(ins.typicalLow, cur), high: fmtMoney(ins.typicalHigh, cur) })
             : ''}
         </p>
       )}
@@ -374,28 +403,25 @@ function FareResults({ result, onUse }: { result: FareSearchResult; onUse: (o: F
         <div className="offer" key={i}>
           <div>
             <strong>{[...new Set(o.legs.map((l) => l.airline))].join(' + ')}</strong>{' '}
-            <span className="muted">
-              {o.legs.map((l) => l.flightNumber).join(', ')}
-            </span>
+            <span className="muted">{o.legs.map((l) => l.flightNumber).join(', ')}</span>
             <div className="small">
               {o.legs[0].from} {o.legs[0].dep.slice(11)} → {o.legs[o.legs.length - 1].to}{' '}
               {o.legs[o.legs.length - 1].arr.slice(11)}
             </div>
             <div className="muted small">
-              {fmtDuration(o.totalDuration)} · {o.stops === 0 ? 'Nonstop' : `${o.stops} stop${o.stops > 1 ? 's' : ''}`}
+              {fmtDuration(o.totalDuration)} ·{' '}
+              {o.stops === 0 ? t('fl.nonstop') : o.stops === 1 ? t('fl.stopOne') : t('fl.stopMany', { n: o.stops })}
             </div>
           </div>
           <div>
             <div className="price">{fmtMoney(o.price, o.currency)}</div>
             <button className="btn small" onClick={() => onUse(o)}>
-              Use this flight
+              {t('fl.useFlight')}
             </button>
           </div>
         </div>
       ))}
-      <p className="muted small">
-        To book, open one of the comparison sites above with the same dates, or go to the airline directly.
-      </p>
+      <p className="muted small">{t('fl.bookHint')}</p>
     </div>
   );
 }
@@ -411,6 +437,7 @@ function FlightCard({
   onTrack: () => void;
   onRemove: () => void;
 }) {
+  const { t } = useT();
   return (
     <li className="item">
       <div className="spread">
@@ -423,19 +450,19 @@ function FlightCard({
             {f.origin ?? '?'} → {f.destination ?? '?'} · {fmtDate(f.flight_date)}
           </div>
           <div className="muted small">
-            {f.booking_ref && <>Booking ref {f.booking_ref} · </>}
-            {f.ticket_number && <>Ticket {f.ticket_number} · </>}
+            {f.booking_ref && <>{t('fl.bookingRef', { ref: f.booking_ref })} · </>}
+            {f.ticket_number && <>{t('fl.ticket', { no: f.ticket_number })} · </>}
             {f.price != null && <>{fmtMoney(f.price, f.currency)} · </>}
-            added by {f.added_by_name ?? 'someone'}
+            {t('common.addedBy', { name: f.added_by_name ?? t('common.someone') })}
           </div>
           {f.notes && <div className="small" style={{ marginTop: 4 }}>{f.notes}</div>}
         </div>
         <div className="row">
           <button className="btn small primary" onClick={onTrack} disabled={state === 'loading'}>
-            {state === 'loading' ? 'Checking…' : 'Track flight'}
+            {state === 'loading' ? t('fl.checking') : t('fl.track')}
           </button>
           <button className="btn small danger" onClick={onRemove}>
-            Remove
+            {t('common.remove')}
           </button>
         </div>
       </div>
@@ -445,6 +472,7 @@ function FlightCard({
 }
 
 function TrackPanel({ r, flightNumber }: { r: TrackResult; flightNumber: string }) {
+  const { t, tOr, lang } = useT();
   const f = r.flight;
   const statusClass =
     f && ['cancelled', 'diverted', 'incident'].includes(f.status)
@@ -459,38 +487,42 @@ function TrackPanel({ r, flightNumber }: { r: TrackResult; flightNumber: string 
       {f && (
         <>
           <div className="row">
-            <span className={`badge ${statusClass}`}>{f.status}</span>
+            <span className={`badge ${statusClass}`}>{tOr(`st.${f.status}`, f.status)}</span>
             <span className="muted small">
               {f.airline} {f.flightIata} · {f.flightDate}
             </span>
           </div>
           <div className="status-grid">
-            <Endpoint title="Departure" p={f.departure} />
-            <Endpoint title="Arrival" p={f.arrival} />
+            <Endpoint title={t('fl.dep')} p={f.departure} />
+            <Endpoint title={t('fl.arr')} p={f.arrival} />
           </div>
           {f.live && (
             <p className="small muted">
-              {f.live.onGround ? 'On the ground' : `In the air · ${Math.round(f.live.altitude)} m · ${Math.round(f.live.speed)} km/h`} ·{' '}
+              {f.live.onGround
+                ? t('fl.onGround')
+                : t('fl.inAir', { alt: Math.round(f.live.altitude), speed: Math.round(f.live.speed) })}{' '}
+              ·{' '}
               <a
                 href={`https://www.google.com/maps?q=${f.live.lat},${f.live.lon}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                position on map ↗
+                {t('fl.mapPos')}
               </a>
             </p>
           )}
         </>
       )}
       <p className="small muted" style={{ marginBottom: 4 }}>
-        Cross-check on a live map:
+        {t('fl.crossCheck')}
       </p>
-      <LinkGrid links={trackLinks(flightNumber)} />
+      <LinkGrid links={trackLinks(flightNumber, lang)} />
     </div>
   );
 }
 
 function Endpoint({ title, p }: { title: string; p: EndPoint }) {
+  const { t } = useT();
   return (
     <div>
       <div className="item-title">
@@ -498,15 +530,15 @@ function Endpoint({ title, p }: { title: string; p: EndPoint }) {
       </div>
       <div className="small muted">{p.airport}</div>
       <div className="small">
-        Scheduled {fmtDateTime(p.scheduled)}
-        {p.estimated && p.estimated !== p.scheduled ? <> · Estimated {fmtDateTime(p.estimated)}</> : null}
-        {p.actual ? <> · Actual {fmtDateTime(p.actual)}</> : null}
+        {t('fl.scheduled', { t: fmtDateTime(p.scheduled) })}
+        {p.estimated && p.estimated !== p.scheduled ? <> · {t('fl.estimated', { t: fmtDateTime(p.estimated) })}</> : null}
+        {p.actual ? <> · {t('fl.actual', { t: fmtDateTime(p.actual) })}</> : null}
       </div>
       <div className="small">
-        {p.terminal ? `Terminal ${p.terminal}` : ''}
+        {p.terminal ? t('fl.terminal', { x: p.terminal }) : ''}
         {p.terminal && p.gate ? ' · ' : ''}
-        {p.gate ? `Gate ${p.gate}` : ''}
-        {p.delay ? ` · Delay ${p.delay} min` : ''}
+        {p.gate ? t('fl.gate', { x: p.gate }) : ''}
+        {p.delay ? ` · ${t('fl.delay', { n: p.delay })}` : ''}
       </div>
     </div>
   );

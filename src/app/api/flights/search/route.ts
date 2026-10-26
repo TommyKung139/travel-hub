@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyUser } from '@/lib/server-auth';
+import { translateWith, type Lang } from '@/lib/i18n';
 import type { FareLeg, FareOffer, FareSearchResult } from '@/lib/types';
 
 // Live fare search through SerpApi's Google Flights engine.
@@ -34,20 +35,22 @@ function parseOffer(raw: any, currency: string): FareOffer | null {
 }
 
 export async function GET(req: Request) {
+  const u = new URL(req.url);
+  const lang: Lang = u.searchParams.get('lang') === 'zh' ? 'zh' : 'en';
+
   const user = await verifyUser(req);
-  if (!user) return NextResponse.json({ error: 'Please sign in.' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: translateWith(lang, 'srv.signIn') }, { status: 401 });
 
   const key = process.env.SERPAPI_KEY;
   if (!key) {
     const body: FareSearchResult = {
       configured: false,
       offers: [],
-      note: 'In-app fare search is off (no SERPAPI_KEY set). Use the comparison links instead.',
+      note: translateWith(lang, 'srv.fareOff'),
     };
     return NextResponse.json(body);
   }
 
-  const u = new URL(req.url);
   const origin = (u.searchParams.get('origin') ?? '').toUpperCase();
   const dest = (u.searchParams.get('dest') ?? '').toUpperCase();
   const depart = u.searchParams.get('depart') ?? '';
@@ -56,15 +59,16 @@ export async function GET(req: Request) {
   const currency = (u.searchParams.get('currency') ?? 'USD').toUpperCase();
 
   if (!/^[A-Z]{3}$/.test(origin) || !/^[A-Z]{3}$/.test(dest) || !/^\d{4}-\d{2}-\d{2}$/.test(depart)) {
-    return NextResponse.json({ error: 'Need origin, destination (3-letter airport codes) and a departure date.' }, { status: 400 });
+    return NextResponse.json({ error: translateWith(lang, 'srv.fareBadInput') }, { status: 400 });
   }
   if (ret && !/^\d{4}-\d{2}-\d{2}$/.test(ret)) {
-    return NextResponse.json({ error: 'Bad return date.' }, { status: 400 });
+    return NextResponse.json({ error: translateWith(lang, 'srv.fareBadReturn') }, { status: 400 });
   }
 
   const cacheKey = [origin, dest, depart, ret, adults, currency].join('|');
   const hit = cache.get(cacheKey);
-  if (hit && Date.now() - hit.at < TTL) return NextResponse.json(hit.value);
+  const note = ret ? translateWith(lang, 'srv.fareRoundTrip') : undefined;
+  if (hit && Date.now() - hit.at < TTL) return NextResponse.json({ ...hit.value, note });
 
   const params = new URLSearchParams({
     engine: 'google_flights',
@@ -72,7 +76,7 @@ export async function GET(req: Request) {
     arrival_id: dest,
     outbound_date: depart,
     currency,
-    hl: 'en',
+    hl: lang === 'zh' ? 'zh-TW' : 'en',
     adults: String(adults),
     type: ret ? '1' : '2',
     api_key: key,
@@ -107,12 +111,9 @@ export async function GET(req: Request) {
             typicalHigh: pi.typical_price_range?.[1],
           }
         : undefined,
-      note: ret
-        ? 'Round-trip prices shown are for the full trip. Outbound flight details listed.'
-        : undefined,
     };
     cache.set(cacheKey, { at: Date.now(), value });
-    return NextResponse.json(value);
+    return NextResponse.json({ ...value, note });
   } catch (e) {
     const body: FareSearchResult = {
       configured: true,

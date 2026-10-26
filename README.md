@@ -83,6 +83,10 @@ How joining works without a backend: a friend reads `joinCodes/{CODE}` to find t
 
 Run `npm run build` and fix whatever TypeScript reports. Everything is plain Next.js 15 App Router + TypeScript + the modular Firebase SDK. If something says "Missing or insufficient permissions", the rules from step 1.4 aren't published yet.
 
+## Languages (English / 繁體中文)
+
+The whole site, including the travel guide and checklist, comes in English and Traditional Chinese (Taiwan). The EN / 中文 button in the header switches it. The first visit follows the browser language (zh-TW / zh-HK / zh-MO start in Chinese), and the choice is remembered per browser. Everything lives in `src/lib/i18n.ts` (interface text and server messages) and `src/lib/checklist.ts` (guide content); to change a phrase, edit it there. Data your group types in (hotel names, notes and so on) is stored exactly as typed.
+
 ## Project layout
 
 ```
@@ -90,7 +94,8 @@ firestore.rules              security rules (publish these in the Firebase conso
 src/lib/firebase.ts          Firebase setup
 src/lib/db.ts                all Firestore reads/writes: trips, join codes, bookings, checklist
 src/lib/links.ts             builds the comparison links for flights / hotels / places
-src/lib/checklist.ts         the travel guide content (used by /guide and the checklist tab)
+src/lib/checklist.ts         the travel guide content, English + 繁體中文 (used by /guide and the checklist tab)
+src/lib/i18n.ts              all interface text in both languages
 src/app/api/flights/search   live fare search (SerpApi)
 src/app/api/flights/track    live flight status (aviationstack)
 src/app/trips/[id]           the trip page with its tabs

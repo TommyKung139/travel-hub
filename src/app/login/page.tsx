@@ -8,7 +8,9 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebase';
+import { tr } from '@/lib/i18n';
 import { useAuth } from '@/components/AuthProvider';
+import { useT } from '@/components/LanguageProvider';
 import Field from '@/components/Field';
 
 function safeNext(): string {
@@ -23,34 +25,34 @@ function friendlyAuthError(err: unknown): string {
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
-      return 'Wrong email or password.';
+      return tr('auth.wrong');
     case 'auth/email-already-in-use':
-      return 'That email already has an account. Try signing in.';
+      return tr('auth.exists');
     case 'auth/weak-password':
-      return 'Password should be at least 6 characters.';
+      return tr('auth.weak');
     case 'auth/invalid-email':
-      return 'That email address doesn’t look right.';
+      return tr('auth.invalidEmail');
     case 'auth/too-many-requests':
-      return 'Too many attempts. Wait a minute and try again.';
+      return tr('auth.tooMany');
     case 'auth/operation-not-allowed':
-      return 'Email/password sign-in is not switched on in Firebase yet (Authentication → Sign-in method).';
+      return tr('auth.notEnabled');
     case 'auth/network-request-failed':
-      return 'Network problem. Check your connection.';
+      return tr('auth.network');
     default:
-      return err instanceof Error ? err.message : 'Something went wrong';
+      return err instanceof Error ? err.message : tr('err.generic');
   }
 }
 
 export default function LoginPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const { t } = useT();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
 
   useEffect(() => {
     if (!loading && user) router.replace(safeNext());
@@ -60,7 +62,6 @@ export default function LoginPage() {
     e.preventDefault();
     setBusy(true);
     setError('');
-    setInfo('');
     const auth = getFirebaseAuth();
     try {
       if (mode === 'signup') {
@@ -80,19 +81,15 @@ export default function LoginPage() {
   return (
     <div style={{ maxWidth: 420, margin: '2rem auto' }}>
       <div className="card">
-        <h1 style={{ fontSize: '1.6rem' }}>{mode === 'signin' ? 'Welcome back' : 'Create your account'}</h1>
-        <p className="muted">
-          {mode === 'signin'
-            ? 'Sign in so your trips and bookings follow you.'
-            : 'So your friends can see who is on the trip.'}
-        </p>
+        <h1 style={{ fontSize: '1.6rem' }}>{mode === 'signin' ? t('login.welcome') : t('login.create')}</h1>
+        <p className="muted">{mode === 'signin' ? t('login.subIn') : t('login.subUp')}</p>
         <form onSubmit={submit} className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
           {mode === 'signup' && (
-            <Field label="Your name" hint="Shown to people on your trips">
+            <Field label={t('login.name')} hint={t('login.nameHint')}>
               <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
             </Field>
           )}
-          <Field label="Email">
+          <Field label={t('login.email')}>
             <input
               className="input"
               type="email"
@@ -102,7 +99,7 @@ export default function LoginPage() {
               required
             />
           </Field>
-          <Field label="Password" hint={mode === 'signup' ? 'At least 6 characters' : undefined}>
+          <Field label={t('login.password')} hint={mode === 'signup' ? t('login.passwordHint') : undefined}>
             <input
               className="input"
               type="password"
@@ -114,23 +111,21 @@ export default function LoginPage() {
             />
           </Field>
           {error && <div className="error">{error}</div>}
-          {info && <div className="notice">{info}</div>}
           <button className="btn primary" disabled={busy}>
-            {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
+            {busy ? t('login.wait') : mode === 'signin' ? t('login.btnIn') : t('login.btnUp')}
           </button>
         </form>
         <p className="muted small" style={{ marginTop: '1rem' }}>
-          {mode === 'signin' ? 'New here?' : 'Already have an account?'}{' '}
+          {mode === 'signin' ? t('login.newHere') : t('login.haveAccount')}{' '}
           <a
             href="#"
             onClick={(e) => {
               e.preventDefault();
               setMode(mode === 'signin' ? 'signup' : 'signin');
               setError('');
-              setInfo('');
             }}
           >
-            {mode === 'signin' ? 'Create an account' : 'Sign in'}
+            {mode === 'signin' ? t('login.createLink') : t('login.signInLink')}
           </a>
         </p>
       </div>

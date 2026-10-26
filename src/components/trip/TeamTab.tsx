@@ -4,11 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteTrip, errMsg, leaveTrip, listMembers } from '@/lib/db';
 import { useAuth } from '@/components/AuthProvider';
+import { useT } from '@/components/LanguageProvider';
 import { formatCode } from '@/lib/format';
 import type { Member, Trip } from '@/lib/types';
 
 export default function TeamTab({ trip }: { trip: Trip }) {
   const { user } = useAuth();
+  const { t } = useT();
   const router = useRouter();
   const me = user?.uid;
   const [members, setMembers] = useState<Member[] | null>(null);
@@ -35,12 +37,12 @@ export default function TeamTab({ trip }: { trip: Trip }) {
       setCopied(what);
       setTimeout(() => setCopied(''), 1800);
     } catch {
-      setError('Could not copy. Select the text and copy it manually.');
+      setError(t('tm.copyFail'));
     }
   }
 
   async function leave() {
-    if (!me || !confirm('Leave this trip?')) return;
+    if (!me || !confirm(t('tm.confirmLeave'))) return;
     try {
       await leaveTrip(trip.id, me);
       router.replace('/trips');
@@ -50,7 +52,7 @@ export default function TeamTab({ trip }: { trip: Trip }) {
   }
 
   async function removeTrip() {
-    if (!me || !confirm(`Delete "${trip.name}" for everyone? Flights, hotels and places will be lost.`)) return;
+    if (!me || !confirm(t('tm.confirmDelete', { name: trip.name }))) return;
     try {
       await deleteTrip(trip, me);
       router.replace('/trips');
@@ -62,32 +64,32 @@ export default function TeamTab({ trip }: { trip: Trip }) {
   return (
     <>
       <div className="card">
-        <h2>Invite friends</h2>
+        <h2>{t('tm.inviteTitle')}</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          Share this code. Your friends sign in, press <strong>Join trip</strong> on their trips page, and enter it.
+          {t('tm.inviteSub')}
         </p>
         <div className="row">
           <span className="code-box">{formatCode(trip.join_code)}</span>
           <button className="btn" onClick={() => copy(formatCode(trip.join_code), 'code')}>
-            {copied === 'code' ? 'Copied!' : 'Copy code'}
+            {copied === 'code' ? t('common.copied') : t('tm.copyCode')}
           </button>
         </div>
         <p className="muted small" style={{ marginBottom: 4 }}>
-          Or send the one-tap link:
+          {t('tm.orLink')}
         </p>
         <div className="row">
           <code style={{ wordBreak: 'break-all' }}>{inviteUrl}</code>
           <button className="btn small" onClick={() => copy(inviteUrl, 'link')}>
-            {copied === 'link' ? 'Copied!' : 'Copy link'}
+            {copied === 'link' ? t('common.copied') : t('tm.copyLink')}
           </button>
         </div>
       </div>
 
       <div className="card">
-        <h2>Who&apos;s going ({members?.length ?? '…'})</h2>
+        <h2>{t('tm.whosGoing', { n: members?.length ?? '…' })}</h2>
         {error && <div className="error">{error}</div>}
         {members === null ? (
-          <p className="muted">Loading…</p>
+          <p className="muted">{t('common.loading')}</p>
         ) : (
           <ul className="item-list">
             {members.map((m) => (
@@ -95,9 +97,9 @@ export default function TeamTab({ trip }: { trip: Trip }) {
                 <div className="spread">
                   <span className="item-title">
                     {m.display_name}
-                    {m.uid === me ? ' (you)' : ''}
+                    {m.uid === me ? t('tm.you') : ''}
                   </span>
-                  {m.role === 'owner' && <span className="badge">Organizer</span>}
+                  {m.role === 'owner' && <span className="badge">{t('tm.organizer')}</span>}
                 </div>
               </li>
             ))}
@@ -106,12 +108,12 @@ export default function TeamTab({ trip }: { trip: Trip }) {
         <div className="form-actions">
           {trip.created_by !== me && (
             <button className="btn danger" onClick={leave}>
-              Leave trip
+              {t('tm.leave')}
             </button>
           )}
           {trip.created_by === me && (
             <button className="btn danger" onClick={removeTrip}>
-              Delete trip
+              {t('tm.delete')}
             </button>
           )}
         </div>

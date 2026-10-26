@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { errMsg, loadChecklist, setChecklistItem } from '@/lib/db';
 import { useAuth } from '@/components/AuthProvider';
-import { ALL_ITEM_IDS, CHECKLIST } from '@/lib/checklist';
+import { useT } from '@/components/LanguageProvider';
+import { ALL_ITEM_IDS, CHECKLIST, itemText, sectionTitle } from '@/lib/checklist';
 import type { Trip } from '@/lib/types';
 
 // Each person has their own ticks for the trip.
 export default function ChecklistTab({ trip }: { trip: Trip }) {
   const { user } = useAuth();
+  const { t, lang } = useT();
   const userId = user?.uid;
   const [done, setDone] = useState<Set<string> | null>(null);
   const [error, setError] = useState('');
@@ -43,7 +45,7 @@ export default function ChecklistTab({ trip }: { trip: Trip }) {
     }
   }
 
-  if (!done) return <p className="muted">{error || 'Loading…'}</p>;
+  if (!done) return <p className="muted">{error || t('common.loading')}</p>;
 
   const total = ALL_ITEM_IDS.length;
   const count = ALL_ITEM_IDS.filter((i) => done.has(i)).length;
@@ -53,8 +55,8 @@ export default function ChecklistTab({ trip }: { trip: Trip }) {
       <div className="card">
         <div className="spread">
           <div>
-            <h2>Your travel checklist</h2>
-            <span className="muted small">Only you see your ticks. Everyone gets their own list.</span>
+            <h2>{t('ck.title')}</h2>
+            <span className="muted small">{t('ck.sub')}</span>
           </div>
           <strong>
             {count} / {total}
@@ -72,20 +74,25 @@ export default function ChecklistTab({ trip }: { trip: Trip }) {
           <div className="card" key={section.id}>
             <div className="spread">
               <h3 style={{ marginBottom: 0 }}>
-                {i + 1}. {section.title}
+                {i + 1}. {sectionTitle(section, lang)}
               </h3>
               <span className="muted small">
                 {sectionDone}/{section.items.length}
               </span>
             </div>
-            {section.items.map((it) => (
-              <label key={it.id} className={`check ${done.has(it.id) ? 'done' : ''}`}>
-                <input type="checkbox" checked={done.has(it.id)} onChange={() => toggle(it.id)} />
-                <span>
-                  <strong>{it.lead}</strong> {it.text}
-                </span>
-              </label>
-            ))}
+            {section.items.map((item) => {
+              const it = itemText(item, lang);
+              return (
+                <label key={item.id} className={`check ${done.has(item.id) ? 'done' : ''}`}>
+                  <input type="checkbox" checked={done.has(item.id)} onChange={() => toggle(item.id)} />
+                  <span>
+                    <strong>{it.lead}</strong>
+                    {it.sep}
+                    {it.text}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         );
       })}

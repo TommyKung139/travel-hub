@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { getDb } from '@/lib/firebase';
+import { tr } from '@/lib/i18n';
 import type { Member, Trip } from '@/lib/types';
 
 /* Firestore layout (see firestore.rules):
@@ -43,10 +44,9 @@ export function errCode(e: unknown): string {
 
 export function errMsg(e: unknown): string {
   const code = errCode(e);
-  if (code === 'permission-denied')
-    return 'Permission denied. If you just set the project up, make sure firestore.rules is published in the Firebase console.';
-  if (code === 'unavailable') return 'Could not reach the database. Check your connection.';
-  return e instanceof Error ? e.message : 'Something went wrong';
+  if (code === 'permission-denied') return tr('err.permission');
+  if (code === 'unavailable') return tr('err.unavailable');
+  return e instanceof Error ? e.message : tr('err.generic');
 }
 
 // ───────────── trips ─────────────
@@ -120,10 +120,10 @@ export async function updateTrip(id: string, fields: Partial<TripInput>): Promis
 export async function joinTripByCode(user: User, displayName: string, raw: string): Promise<string> {
   const db = getDb();
   const code = cleanCode(raw);
-  if (code.length < 4) throw new Error('That code looks too short.');
+  if (code.length < 4) throw new Error(tr('err.codeShort'));
 
   const codeSnap = await getDoc(doc(db, 'joinCodes', code));
-  if (!codeSnap.exists()) throw new Error('No trip found for that code.');
+  if (!codeSnap.exists()) throw new Error(tr('err.codeNotFound'));
   const tripId = codeSnap.data().trip_id as string;
 
   const memberRef = doc(db, 'trips', tripId, 'members', user.uid);
